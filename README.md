@@ -1,5 +1,8 @@
 # HiGG
 
+[![Views](https://hits.sh/github.com/nedsion/HiGG.svg?label=views&color=7c3aed)](https://hits.sh/github.com/nedsion/HiGG/)
+[![Downloads](.github/badges/downloads.svg)](../../releases)
+
 **[English](#english) · [Tiếng Việt](#tiếng-việt)**
 
 Call Google Gemini by saying **"Hey Google" / "OK Google"** on vivo phones running the China ROM (OriginOS), where Google's own hotword can't work — no root, no ADB, no Shizuku, no Accessibility service.

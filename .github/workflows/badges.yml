@@ -1,0 +1,43 @@
+# Cập nhật huy hiệu lượt tải trong README (tổng lượt tải các file ở Releases).
+name: Download badge
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  downloads:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Count release downloads
+        id: count
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          total=$(gh api "repos/${{ github.repository }}/releases" --paginate \
+            -q '[.[].assets[].download_count] | add // 0' | awk '{s += $1} END {print s + 0}')
+          echo "total=$total" >> "$GITHUB_OUTPUT"
+          echo "Tổng lượt tải: $total"
+
+      - name: Draw badge
+        run: bash .github/scripts/downloads-badge.sh "${{ steps.count.outputs.total }}" .github/badges/downloads.svg
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- .github/badges/downloads.svg; then
+            echo "Không đổi"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/downloads.svg
+          git commit -m "Update download badge: ${{ steps.count.outputs.total }}"
+          git push
