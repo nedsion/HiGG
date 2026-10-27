@@ -26,6 +26,7 @@ object Gemini {
     private val main = Handler(Looper.getMainLooper())
     private var pendingUntil = 0L
     private var unlockReceiverRegistered = false
+    private var pendingAfterJovi = false
 
     fun isGoogleInstalled(context: Context): Boolean =
         runCatching { context.packageManager.getPackageInfo(GOOGLE_PKG, 0) }.isSuccess
@@ -51,7 +52,7 @@ object Gemini {
      * Mở Gemini khi app đang chạy nền. Máy đang khóa thì bật sáng màn hình và đợi người dùng
      * mở khóa (vân tay / khuôn mặt) — OriginOS không cho app thường tự gọi khung mở khóa.
      */
-    fun launchFromBackground(context: Context) {
+    fun launchFromBackground(context: Context, afterJovi: Boolean = false) {
         val app = context.applicationContext
         val power = app.getSystemService(PowerManager::class.java)
         if (!power.isInteractive) {
@@ -64,10 +65,11 @@ object Gemini {
         main.post {
             if (app.getSystemService(KeyguardManager::class.java).isKeyguardLocked) {
                 pendingUntil = SystemClock.elapsedRealtime() + UNLOCK_WAIT_MS
+                pendingAfterJovi = afterJovi
                 registerUnlockReceiver(app)
                 DebugLog.write(app, "máy đang khóa, chờ mở khóa")
             } else {
-                launchWithOverlay(app)
+                launchWithOverlay(app, afterJovi)
             }
         }
     }
@@ -79,7 +81,7 @@ object Gemini {
             override fun onReceive(context: Context, intent: Intent) {
                 if (SystemClock.elapsedRealtime() > pendingUntil) return
                 pendingUntil = 0L
-                launchWithOverlay(app)
+                launchWithOverlay(app, pendingAfterJovi)
             }
         }, IntentFilter(Intent.ACTION_USER_PRESENT))
     }
@@ -88,7 +90,7 @@ object Gemini {
      * Từ Android 15, quyền "hiển thị trên ứng dụng khác" chỉ cho mở màn hình từ nền khi app
      * đang có một cửa sổ nổi hiện trên màn hình, nên thêm tạm một cửa sổ trong suốt 1×1 px.
      */
-    private fun launchWithOverlay(app: Context) {
+    private fun launchWithOverlay(app: Context, afterJovi: Boolean = false) {
         val windowManager = app.getSystemService(WindowManager::class.java)
         // Trong suốt hoàn toàn, không vẽ gì: không để lại vệt màu hay gây lưu ảnh trên màn hình.
         val pixel = View(app).apply {
@@ -106,7 +108,18 @@ object Gemini {
         }.isSuccess
         // Đợi cửa sổ thật sự hiện lên rồi mới mở Gemini, gỡ ngay sau khi Gemini đã mở.
         main.postDelayed({
-            DebugLog.write(app, "mở Gemini (cửa sổ nổi: $added): ${launch(app)}")
+            // Gọi từ "Hi Jovi": đi qua màn hình chen giữa để Jovi đóng hẳn trước khi Gemini chụp màn hình.
+            val ok = if (afterJovi) {
+                runCatching {
+                    app.startActivity(
+                        Intent(app, JoviHandoffActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+                    )
+                }.isSuccess
+            } else {
+                launch(app)
+            }
+            DebugLog.write(app, "mở Gemini (cửa sổ nổi: $added, qua Jovi: $afterJovi): $ok")
             if (added) main.postDelayed({ runCatching { windowManager.removeView(pixel) } }, 600)
         }, 100)
     }

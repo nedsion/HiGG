@@ -165,9 +165,9 @@ class HotwordService : Service() {
         val wake = JoviWatcher.lastWake(this, since) ?: return
         handledJoviWake = wake + 1
         DebugLog.write(this, "Jovi vừa thức dậy → mở Gemini")
-        // Mở ngay: Gemini lấy micro thì Jovi đóng hẳn. (Giành quyền âm thanh trước thì Jovi không
-        // đóng mà chuyển sang thẻ nhập chữ, và Gemini chụp dính cái thẻ đó vào ảnh nền.)
-        Gemini.launchFromBackground(this)
+        // Qua màn hình chen giữa: nó giành micro cho Jovi đóng hẳn rồi mới mở Gemini, để Gemini chụp
+        // màn hình sạch. (Giành quyền âm thanh thì Jovi không đóng mà chuyển sang thẻ nhập chữ.)
+        Gemini.launchFromBackground(this, afterJovi = true)
     }
 
     private fun listenLoop() {
