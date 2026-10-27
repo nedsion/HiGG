@@ -131,8 +131,9 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
                     RowDivider()
                     SetupRow(HiggIcons.Power, s.autostartTitle, s.autostartDescription, null, "", actions.openAutostartSettings)
                     RowDivider()
-                    // Tùy chọn, không tính vào số bước: Android luôn phủ màu cầu vồng ("nháy màn hình")
-                    // khi trợ lý không phải app hệ thống đọc màn hình — app Google trên ROM nội địa là vậy.
+                    // Tùy chọn, không tính vào số bước. Khi được đọc màn hình, Gemini chụp màn hình lúc mở
+                    // và giữ làm nền — dính cả hiệu ứng xanh của Jovi; Android còn phủ màu cầu vồng
+                    // ("nháy màn hình") vì app Google trên ROM nội địa không phải app hệ thống.
                     SetupRow(HiggIcons.Sparkle, s.noFlashTitle, s.noFlashDescription, state.noScreenFlash, s.actionTurnOff, actions.openAssistSettings)
                 }
             }
