@@ -165,9 +165,12 @@ class HotwordService : Service() {
         val wake = JoviWatcher.lastWake(this, since) ?: return
         handledJoviWake = wake + 1
         DebugLog.write(this, "Jovi vừa thức dậy → mở Gemini")
-        // Qua màn hình chen giữa: nó giành micro cho Jovi đóng hẳn rồi mới mở Gemini, để Gemini chụp
-        // màn hình sạch. (Giành quyền âm thanh thì Jovi không đóng mà chuyển sang thẻ nhập chữ.)
-        Gemini.launchFromBackground(this, afterJovi = true)
+        // Mở ngay: Gemini lấy micro thì Jovi đóng hẳn. (App khác giành micro hay quyền âm thanh thì
+        // Jovi không đóng mà chuyển sang thẻ nhập chữ.)
+        // Gemini chụp màn hình lúc mở và giữ làm nền, nên nền dính hiệu ứng xanh của Jovi — trừ khi
+        // tắt "Sử dụng văn bản trên màn hình". Đã thử và không được: chờ Jovi đóng trước (Jovi đổi
+        // sang thẻ nhập chữ), gọi lại Gemini sau 1,2 s (Gemini giữ ảnh cũ).
+        Gemini.launchFromBackground(this)
     }
 
     private fun listenLoop() {

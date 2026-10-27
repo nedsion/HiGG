@@ -61,15 +61,6 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-        <!-- Chen giữa Jovi và Gemini: chờ Jovi đóng hẳn rồi mới mở Gemini. -->
-        <activity
-            android:name=".JoviHandoffActivity"
-            android:exported="false"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:taskAffinity=""
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
         <service
             android:name=".HotwordService"
             android:exported="false"

@@ -133,7 +133,7 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
                     RowDivider()
                     // Tùy chọn, không tính vào số bước: Android phủ màu cầu vồng ("nháy màn hình") khi trợ
                     // lý không phải app hệ thống đọc màn hình — app Google trên ROM nội địa là vậy. Tắt thì
-                    // mất Circle to Search. (Màu xanh của Jovi đã được JoviHandoffActivity xử lý.)
+                    // mất Circle to Search.
                     SetupRow(HiggIcons.Sparkle, s.noFlashTitle, s.noFlashDescription, state.noScreenFlash, s.actionTurnOff, actions.openAssistSettings)
                 }
             }
