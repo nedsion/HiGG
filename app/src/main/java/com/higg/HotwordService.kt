@@ -5,13 +5,19 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
+import android.media.AudioRecordingConfiguration
 import android.media.MediaRecorder
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +37,16 @@ class HotwordService : Service() {
         private const val CHANNEL_ID = "hotword"
         private const val NOTIFICATION_ID = 1
         private const val SAMPLE_RATE = HotwordDetector.SAMPLE_RATE
+
+        /** Chế độ Jovi: chỉ tính lần Jovi thức dậy trong chừng này ms gần nhất. */
+        private const val JOVI_WINDOW_MS = 3000L
+
+        /** Sự kiện của Jovi có thể ghi chậm hơn lúc nó mở micro một chút, nên kiểm tra vài lần. */
+        private val JOVI_CHECK_DELAYS_MS = longArrayOf(0, 300, 800, 1500)
+
+        /** Lúc màn hình vừa bật: HiGG có thể vừa được rã đông, Jovi đã thức dậy từ vài giây trước. */
+        private const val SCREEN_ON_WINDOW_MS = 8000L
+        private val SCREEN_ON_CHECK_DELAYS_MS = longArrayOf(0, 500, 1500, 3000)
 
         private val runningState = MutableStateFlow(false)
 
@@ -78,20 +94,77 @@ class HotwordService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (worker == null) {
-            stopRequested = false
-            worker = thread(name = "hotword") { listenLoop() }
+        if (worker == null && recordingCallback == null) {
+            if (Prefs.trigger(this) == Prefs.Trigger.JOVI) {
+                startJoviMode()
+            } else {
+                stopRequested = false
+                worker = thread(name = "hotword") { listenLoop() }
+            }
         }
         runningState.value = true
         return START_STICKY
     }
 
     override fun onDestroy() {
+        recordingCallback?.let { getSystemService(AudioManager::class.java).unregisterAudioRecordingCallback(it) }
+        recordingCallback = null
+        KeepAliveOverlay.hide(this)
+        screenReceiver?.let { unregisterReceiver(it) }
+        screenReceiver = null
+        main.removeCallbacksAndMessages(null)
         stopRequested = true
         worker?.interrupt()
         worker = null
         runningState.value = false
         super.onDestroy()
+    }
+
+    private val main = Handler(Looper.getMainLooper())
+    private var recordingCallback: AudioManager.AudioRecordingCallback? = null
+    private var handledJoviWake = 0L
+    private var screenReceiver: BroadcastReceiver? = null
+
+    /**
+     * Chế độ "Hi Jovi": để chip nghe của vivo bắt từ khóa, HiGG không thu âm (chip của vivo tự
+     * tạm dừng khi có app khác giữ micro) và không chạy mô hình nào. Android báo mỗi khi có app
+     * bắt đầu thu âm; nếu đó là Jovi vừa thức dậy thì mở Gemini — Gemini mở lên thì Jovi tự nhả
+     * micro và tắt viền sáng (đã thử trên OriginOS 6).
+     */
+    private fun startJoviMode() {
+        handledJoviWake = System.currentTimeMillis()
+        val callback = object : AudioManager.AudioRecordingCallback() {
+            override fun onRecordingConfigChanged(configs: List<AudioRecordingConfiguration>) {
+                if (configs.isEmpty()) return
+                for (delay in JOVI_CHECK_DELAYS_MS) main.postDelayed({ checkJoviWake() }, delay)
+            }
+        }
+        getSystemService(AudioManager::class.java).registerAudioRecordingCallback(callback, main)
+        recordingCallback = callback
+        // Màn hình tắt thì cửa sổ nổi không hiển thị và OriginOS đóng băng HiGG. Jovi thức dậy sẽ
+        // bật màn hình; tín hiệu "màn hình bật" rã đông HiGG, nên kiểm tra lại Jovi lúc đó.
+        val wakeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                for (delay in SCREEN_ON_CHECK_DELAYS_MS) {
+                    main.postDelayed({ checkJoviWake(SCREEN_ON_WINDOW_MS) }, delay)
+                }
+            }
+        }
+        registerReceiver(wakeReceiver, IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        })
+        screenReceiver = wakeReceiver
+        val alive = KeepAliveOverlay.show(this)
+        DebugLog.write(this, "bắt đầu chờ Jovi (cửa sổ giữ chạy: $alive)")
+    }
+
+    private fun checkJoviWake(window: Long = JOVI_WINDOW_MS) {
+        val since = maxOf(handledJoviWake, System.currentTimeMillis() - window)
+        val wake = JoviWatcher.lastWake(this, since) ?: return
+        handledJoviWake = wake + 1
+        DebugLog.write(this, "Jovi vừa thức dậy → mở Gemini")
+        Gemini.launchFromBackground(this)
     }
 
     private fun listenLoop() {
@@ -188,7 +261,7 @@ class HotwordService : Service() {
         return Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_higg)
             .setContentTitle(s.notificationTitle)
-            .setContentText(s.notificationText)
+            .setContentText(if (Prefs.trigger(this) == Prefs.Trigger.JOVI) s.notificationTextJovi else s.notificationText)
             .setContentIntent(open)
             .addAction(Notification.Action.Builder(null, s.notificationStop, stop).build())
             .setOngoing(true)

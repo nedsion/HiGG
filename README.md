@@ -19,7 +19,8 @@ On China-ROM vivo phones the Google app is installed as a normal app, so Android
 HiGG listens for the wake word itself, entirely on the phone, and opens the **Gemini overlay** when it hears it.
 
 ### Features
-- **"Hey Google" / "OK Google" → Gemini overlay**, also with the screen off or locked (the screen turns on; unlock with face or fingerprint and Gemini appears).
+- **"Hi Jovi" / "小V小V" → Gemini** (default on vivo): vivo's own hotword chip wakes Jovi, and HiGG hands off to the Gemini overlay — accurate and almost no battery. HiGG doesn't touch the microphone in this mode.
+- **"Hey Google" / "OK Google" → Gemini overlay** (alternative): HiGG listens on the phone itself, also with the screen off or locked (the screen turns on; unlock with face or fingerprint and Gemini appears).
 - **Voice lock**: record 6 samples and only your voice opens Gemini — the TV and people nearby are ignored.
 - **False-trigger filtering**: the wake word must start the sentence, and every candidate is re-checked by a full speech model before Gemini opens.
 - **Battery saving**: the recognizer pauses while the room is quiet.
@@ -33,19 +34,23 @@ HiGG listens for the wake word itself, entirely on the phone, and opens the **Ge
 - About 200 MB of free storage (speech models are unpacked on first start).
 
 ### Install
-1. Download `HiGG-v0.3.0.apk` from [Releases](../../releases) and open it. OriginOS warns about apps from outside its store — tick *I understand* and continue.
+1. Download `HiGG-v0.4.0.apk` from [Releases](../../releases) and open it. OriginOS warns about apps from outside its store — tick *I understand* and continue.
 2. Open HiGG and complete the **Setup** list:
    - **Microphone & notifications** — tap *Allow microphone*; listening starts right away.
    - **Display over other apps** — needed to open Gemini while HiGG runs in the background.
    - **Unrestricted battery** — so OriginOS doesn't stop HiGG.
    - **Keep permissions** — turn off *Pause app activity if unused*, otherwise Android may revoke the microphone after a few months.
+   - **Usage access** ("Hi Jovi" mode) — lets HiGG see the moment Jovi wakes up.
    - **Auto-start** — allow HiGG in vivo's *Auto-start* list so it resumes after a reboot or update.
-3. Recommended: **Set up voice lock** and read "Hey Google" or "OK Google" 6 times in a quiet place.
-4. Optional: turn off "Hi Jovi" so both assistants don't compete for the microphone.
+3. Choose the **wake word**: "Hi Jovi" (recommended — make sure "Hi Jovi" / "小V小V" is on in Jovi's voice wake-up settings) or "Hey Google".
+4. "Hey Google" mode only: **set up voice lock** (6 samples in a quiet place) and turn off "Hi Jovi" so both don't compete for the microphone.
 
 After a reboot, Android 14+ doesn't allow microphone apps to start on their own; HiGG shows a notification — tap it once to resume.
 
 ### How it works
+**"Hi Jovi" mode:** each time Jovi wakes, it starts the foreground service of `com.vivo.ai.copilot` and opens the microphone. HiGG doesn't record (vivo's hotword chip pauses while another app holds the mic); it listens for Android's "a recording started" callback, confirms through usage access that Jovi just woke, and opens Gemini — Jovi then releases the mic and its glow fades. A fully transparent 1×1 px overlay keeps OriginOS from freezing HiGG while the screen is on; with the screen off, the screen-on broadcast thaws HiGG in time.
+
+**"Hey Google" mode:**
 ```
 mic ─▶ silence gate ─▶ Vosk (restricted grammar) ─▶ wake word at start of sentence?
                                                      │
@@ -129,7 +134,8 @@ Trên máy vivo bản nội địa, app Google chỉ là app thường nên Andr
 HiGG tự nghe từ khóa ngay trên máy và mở **bảng nổi Gemini** khi nghe thấy.
 
 ### Tính năng
-- **"Hey Google" / "OK Google" → bảng nổi Gemini**, cả khi tắt màn hình hay đang khóa (màn hình tự sáng; mở khóa bằng khuôn mặt hoặc vân tay là Gemini hiện ra).
+- **"Hi Jovi" / "小V小V" → Gemini** (mặc định trên máy vivo): chip nghe của vivo đánh thức Jovi, HiGG chuyển sang bảng nổi Gemini — chính xác, gần như không tốn pin. Ở chế độ này HiGG không đụng tới micro.
+- **"Hey Google" / "OK Google" → bảng nổi Gemini** (lựa chọn khác): HiGG tự nghe trên máy, cả khi tắt màn hình hay đang khóa (màn hình tự sáng; mở khóa bằng khuôn mặt hoặc vân tay là Gemini hiện ra).
 - **Khóa giọng nói**: đọc mẫu 6 lần, chỉ giọng bạn mở được Gemini — tiếng TV và người xung quanh bị bỏ qua.
 - **Lọc bật nhầm**: từ khóa phải đứng đầu câu, và mỗi lần nghi là từ khóa đều được mô hình nhận diện đầy đủ nghe lại trước khi mở Gemini.
 - **Tiết kiệm pin**: tạm dừng nhận diện khi phòng yên tĩnh.
@@ -143,19 +149,23 @@ HiGG tự nghe từ khóa ngay trên máy và mở **bảng nổi Gemini** khi n
 - Còn trống khoảng 200 MB (mô hình giọng nói được giải nén lần đầu mở).
 
 ### Cài đặt
-1. Tải `HiGG-v0.3.0.apk` ở mục [Releases](../../releases) rồi mở. OriginOS sẽ cảnh báo app ngoài cửa hàng — tích *Tôi đã hiểu* rồi tiếp tục cài.
+1. Tải `HiGG-v0.4.0.apk` ở mục [Releases](../../releases) rồi mở. OriginOS sẽ cảnh báo app ngoài cửa hàng — tích *Tôi đã hiểu* rồi tiếp tục cài.
 2. Mở HiGG và làm hết danh sách **Thiết lập**:
    - **Micro và thông báo** — bấm *Cấp quyền micro*, app bắt đầu nghe ngay.
    - **Hiển thị trên ứng dụng khác** — để mở được Gemini khi HiGG chạy nền.
    - **Không giới hạn pin** — để OriginOS không tắt HiGG.
    - **Không tạm dừng khi ít dùng** — tắt *Tạm dừng hoạt động nếu không dùng*, nếu không Android có thể thu hồi quyền micro sau vài tháng.
+   - **Truy cập dữ liệu sử dụng** (chế độ "Hi Jovi") — để HiGG biết đúng lúc Jovi vừa thức dậy.
    - **Tự động khởi động** — bật HiGG trong danh sách *Tự động khởi động* của vivo để app tự chạy lại sau khi khởi động máy hoặc cập nhật.
-3. Nên làm: **Đăng ký giọng nói**, đọc "Hey Google" hoặc "OK Google" 6 lần ở nơi yên tĩnh.
-4. Tùy chọn: tắt "Hi Jovi" để hai trợ lý không giành micro.
+3. Chọn **cách gọi**: "Hi Jovi" (khuyên dùng — nhớ bật "Hi Jovi" / "小V小V" trong cài đặt đánh thức bằng giọng nói của Tiểu V) hoặc "Hey Google".
+4. Chỉ với chế độ "Hey Google": **đăng ký giọng nói** (6 lần ở nơi yên tĩnh) và tắt "Hi Jovi" để hai bên không giành micro.
 
 Sau khi khởi động lại máy, Android 14+ không cho app dùng micro tự chạy; HiGG sẽ hiện thông báo — chạm một lần để nghe lại.
 
 ### Cách hoạt động
+**Chế độ "Hi Jovi":** mỗi lần thức dậy, Jovi bật dịch vụ nền của `com.vivo.ai.copilot` và mở micro. HiGG không thu âm (chip nghe của vivo tự tạm dừng khi có app khác giữ micro); nó chờ Android báo "có app vừa bắt đầu thu âm", kiểm tra qua quyền truy cập dữ liệu sử dụng rằng Jovi vừa thức dậy, rồi mở Gemini — Jovi tự nhả micro và tắt viền sáng. Một cửa sổ nổi trong suốt hoàn toàn 1×1 px giữ cho OriginOS không đóng băng HiGG khi màn hình sáng; khi màn hình tắt, tín hiệu "màn hình bật" rã đông HiGG kịp lúc.
+
+**Chế độ "Hey Google":**
 ```
 micro ─▶ bỏ qua im lặng ─▶ Vosk (từ vựng giới hạn) ─▶ từ khóa ở đầu câu?
                                                        │

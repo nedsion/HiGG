@@ -43,6 +43,7 @@ object HiggIcons {
         "Heart",
         "M12 21l-1.5-1.3C5.4 15.1 2 12.1 2 8.4A4.9 4.9 0 0 1 7 3.5c1.9 0 3.7.9 5 2.3 1.3-1.4 3.1-2.3 5-2.3a4.9 4.9 0 0 1 5 4.9c0 3.7-3.4 6.7-8.5 11.3L12 21z",
     )
+    val Activity = icon("Activity", "M22 12h-4l-3 9L9 3l-3 9H2")
     val Lock = icon("Lock", "M6 11h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z", "M8 11V7a4 4 0 0 1 8 0v4")
 
     private fun icon(name: String, vararg paths: String): ImageVector =

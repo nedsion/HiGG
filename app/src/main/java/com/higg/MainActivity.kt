@@ -90,6 +90,22 @@ class MainActivity : ComponentActivity() {
                         openKeepPermissionsSettings = {
                             openSettings(Intent.ACTION_AUTO_REVOKE_PERMISSIONS)
                         },
+                        openUsageAccessSettings = {
+                            try {
+                                openSettings(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                            } catch (e: ActivityNotFoundException) {
+                                startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                            }
+                        },
+                        setTrigger = {
+                            Prefs.setTrigger(this, it)
+                            state = readSetupState()
+                            // Dịch vụ chọn cách nghe lúc khởi động, nên khởi động lại để áp dụng.
+                            if (HotwordService.isRunning) {
+                                HotwordService.stop(this)
+                                HotwordService.start(this)
+                            }
+                        },
                         openAutostartSettings = {
                             // Trang "Tự động khởi động" của vivo; máy khác thì mở Thông tin ứng dụng.
                             try {
@@ -141,6 +157,9 @@ class MainActivity : ComponentActivity() {
         battery = getSystemService(PowerManager::class.java).isIgnoringBatteryOptimizations(packageName),
         keepPermissions = packageManager.isAutoRevokeWhitelisted,
         voiceEnrolled = VoiceProfile.load(this) != null,
+        trigger = Prefs.trigger(this),
+        joviInstalled = JoviWatcher.isJoviInstalled(this),
+        usageAccess = JoviWatcher.hasUsageAccess(this),
     )
 
     private fun openSettings(action: String) {

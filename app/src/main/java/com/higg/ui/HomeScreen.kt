@@ -22,6 +22,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -32,6 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.higg.Lang
 import com.higg.LocalStrings
+import com.higg.Prefs
 
 /** Trạng thái các bước thiết lập, đọc lại mỗi khi quay về màn hình. */
 data class SetupState(
@@ -48,8 +53,13 @@ data class SetupState(
     val battery: Boolean,
     val keepPermissions: Boolean,
     val voiceEnrolled: Boolean,
+    val trigger: Prefs.Trigger,
+    val joviInstalled: Boolean,
+    val usageAccess: Boolean,
 ) {
-    private val required get() = listOf(microphone, overlay, battery, keepPermissions)
+    val jovi get() = trigger == Prefs.Trigger.JOVI
+    private val required get() =
+        listOf(microphone, overlay, battery, keepPermissions) + if (jovi) listOf(usageAccess) else emptyList()
     val requiredDone get() = required.count { it }
     val requiredTotal get() = required.size
 }
@@ -62,6 +72,8 @@ class HomeActions(
     val openBatterySettings: () -> Unit,
     val openKeepPermissionsSettings: () -> Unit,
     val openAutostartSettings: () -> Unit,
+    val openUsageAccessSettings: () -> Unit,
+    val setTrigger: (Prefs.Trigger) -> Unit,
     val openEnroll: () -> Unit,
     val testGemini: () -> Unit,
     val openDonate: () -> Unit,
@@ -88,6 +100,17 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
             item { Header(lang, actions.setLanguage) }
             item { Hero(state, listening, actions) }
 
+            if (state.joviInstalled) {
+                item { SectionHeader(s.sectionTrigger, modifier = MaxWidth) }
+                item {
+                    GroupCard(MaxWidth) {
+                        TriggerRow(s.triggerJoviTitle, s.triggerJoviDescription, state.jovi) { actions.setTrigger(Prefs.Trigger.JOVI) }
+                        RowDivider()
+                        TriggerRow(s.triggerGoogleTitle, s.triggerGoogleDescription, !state.jovi) { actions.setTrigger(Prefs.Trigger.GOOGLE) }
+                    }
+                }
+            }
+
             item { SectionHeader(s.sectionSetup, "${state.requiredDone}/${state.requiredTotal}", MaxWidth) }
             item {
                 GroupCard(MaxWidth) {
@@ -98,20 +121,31 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
                     SetupRow(HiggIcons.Battery, s.batteryTitle, s.batteryDescription, state.battery, s.actionAllow, actions.openBatterySettings)
                     RowDivider()
                     SetupRow(HiggIcons.Lock, s.keepPermissionsTitle, s.keepPermissionsDescription, state.keepPermissions, s.actionTurnOff, actions.openKeepPermissionsSettings)
+                    if (state.jovi) {
+                        RowDivider()
+                        SetupRow(HiggIcons.Activity, s.usageTitle, s.usageDescription, state.usageAccess, s.actionAllow, actions.openUsageAccessSettings)
+                    }
                     RowDivider()
                     SetupRow(HiggIcons.Power, s.autostartTitle, s.autostartDescription, null, "", actions.openAutostartSettings)
                 }
             }
 
-            item { SectionHeader(s.sectionVoiceLock, modifier = MaxWidth) }
-            item { VoiceLockCard(state.voiceEnrolled, actions.openEnroll) }
+            // Khóa giọng chỉ dùng cho chế độ HiGG tự nghe; chế độ Jovi dùng cài đặt giọng của Jovi.
+            if (!state.jovi) {
+                item { SectionHeader(s.sectionVoiceLock, modifier = MaxWidth) }
+                item { VoiceLockCard(state.voiceEnrolled, actions.openEnroll) }
+            }
 
             item { SectionHeader(s.sectionOtherWays, modifier = MaxWidth) }
             item {
                 GroupCard(MaxWidth) {
                     InfoRow(HiggIcons.Button, s.shortcutTitle, s.shortcutDescription)
                     RowDivider()
-                    InfoRow(HiggIcons.Quiet, s.joviTitle, s.joviDescription)
+                    if (state.jovi) {
+                        InfoRow(HiggIcons.Mic, s.joviEnableTitle, s.joviEnableDescription)
+                    } else {
+                        InfoRow(HiggIcons.Quiet, s.joviTitle, s.joviDescription)
+                    }
                 }
             }
             item {
@@ -202,7 +236,7 @@ private fun Hero(state: SetupState, listening: Boolean, actions: HomeActions) {
                 Text(
                     when {
                         !state.googleInstalled -> s.hintNeedGoogle
-                        listening -> s.hintListening
+                        listening -> if (state.jovi) s.hintListeningJovi else s.hintListening
                         else -> s.hintOff
                     },
                     style = MaterialTheme.typography.bodyMedium,
@@ -211,7 +245,10 @@ private fun Hero(state: SetupState, listening: Boolean, actions: HomeActions) {
                 )
             }
             Spacer(Modifier.height(Space.md))
-            StatusPill(if (state.voiceEnrolled) s.pillOwnerOnly else s.pillAnyVoice, on = state.voiceEnrolled)
+            when {
+                state.jovi -> StatusPill(s.pillJovi, on = true)
+                else -> StatusPill(if (state.voiceEnrolled) s.pillOwnerOnly else s.pillAnyVoice, on = state.voiceEnrolled)
+            }
             Spacer(Modifier.height(Space.lg))
             val buttonModifier = Modifier.fillMaxWidth().height(56.dp)
             when {
@@ -288,6 +325,39 @@ fun InfoRow(icon: ImageVector, title: String, description: String) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Một lựa chọn cách gọi: cả dòng là nút chọn (radio), trạng thái đọc bằng chữ "Đang dùng". */
+@Composable
+private fun TriggerRow(title: String, description: String, selected: Boolean, onSelect: () -> Unit) {
+    val s = LocalStrings.current
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        onClick = onSelect,
+        color = colors.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                role = Role.RadioButton
+                this.selected = selected
+            },
+    ) {
+        Row(
+            Modifier.padding(horizontal = Space.md, vertical = Space.md - Space.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RadioButton(selected = selected, onClick = null)
+            Spacer(Modifier.width(Space.md))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+            if (selected) {
+                Spacer(Modifier.width(Space.sm))
+                Text(s.stateInUse, style = MaterialTheme.typography.labelMedium, color = colors.primary)
+            }
         }
     }
 }
