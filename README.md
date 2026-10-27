@@ -24,7 +24,6 @@ HiGG listens for the wake word itself, entirely on the phone, and opens the **Ge
 - **Voice lock**: record 6 samples and only your voice opens Gemini — the TV and people nearby are ignored.
 - **False-trigger filtering**: the wake word must start the sentence, and every candidate is re-checked by a full speech model before Gemini opens.
 - **Battery saving**: the recognizer pauses while the room is quiet.
-- **vivo shortcut keys**: set *Quick launch* / *Shortcut button → Open app → HiGG* and the key opens Gemini directly; or long-press the HiGG icon → *Open Gemini*.
 - Vietnamese / English interface, light and dark themes.
 - Works alongside banking apps: no Accessibility service, nothing needs Developer options after install.
 
@@ -69,7 +68,7 @@ All recognition runs on the phone. HiGG has no internet permission and never rec
 
 ### Limitations
 - Always-on listening uses the CPU (about 8% of one core measured on the test phone, less in quiet rooms). A dedicated hotword chip like Jovi's is only available to system apps.
-- Very noisy places reduce accuracy; repeat the wake word or use a shortcut key.
+- Very noisy places reduce accuracy; repeat the wake word.
 - The voice lock is a convenience filter, not a security feature: a recording of your voice could pass.
 - Recognition is tuned for English pronunciation of "Google".
 
@@ -139,7 +138,6 @@ HiGG tự nghe từ khóa ngay trên máy và mở **bảng nổi Gemini** khi n
 - **Khóa giọng nói**: đọc mẫu 6 lần, chỉ giọng bạn mở được Gemini — tiếng TV và người xung quanh bị bỏ qua.
 - **Lọc bật nhầm**: từ khóa phải đứng đầu câu, và mỗi lần nghi là từ khóa đều được mô hình nhận diện đầy đủ nghe lại trước khi mở Gemini.
 - **Tiết kiệm pin**: tạm dừng nhận diện khi phòng yên tĩnh.
-- **Phím tắt vivo**: đặt *Khởi chạy nhanh* / *Nút lối tắt → Mở ứng dụng → HiGG* là bấm phím mở thẳng Gemini; hoặc nhấn giữ biểu tượng HiGG → *Mở Gemini*.
 - Giao diện tiếng Việt / tiếng Anh, sáng và tối.
 - Dùng chung được với app ngân hàng: không dùng Trợ năng, không cần bật Tùy chọn nhà phát triển sau khi cài.
 
@@ -184,7 +182,7 @@ Mọi nhận diện chạy trên máy. HiGG không có quyền truy cập Intern
 
 ### Giới hạn
 - Nghe liên tục tốn CPU (đo trên máy thử khoảng 8% của một nhân, phòng yên tĩnh thì ít hơn). Chip nghe tiết kiệm pin như của Jovi chỉ dành cho app hệ thống.
-- Nơi rất ồn sẽ nhận kém hơn; hãy nói lại hoặc dùng phím tắt.
+- Nơi rất ồn sẽ nhận kém hơn; hãy nói lại.
 - Khóa giọng là bộ lọc cho tiện, không phải bảo mật: bản ghi âm giọng bạn vẫn có thể lọt qua.
 - Nhận diện được chỉnh theo cách phát âm tiếng Anh của "Google".
 

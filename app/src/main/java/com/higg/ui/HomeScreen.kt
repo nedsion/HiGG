@@ -27,6 +27,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -54,6 +55,7 @@ data class SetupState(
     val keepPermissions: Boolean,
     val voiceEnrolled: Boolean,
     val trigger: Prefs.Trigger,
+    val waitForJovi: Boolean,
     val joviInstalled: Boolean,
     val usageAccess: Boolean,
     /** Đã tắt "Sử dụng văn bản trên màn hình" (null: không đọc được cài đặt). */
@@ -77,6 +79,7 @@ class HomeActions(
     val openUsageAccessSettings: () -> Unit,
     val openAssistSettings: () -> Unit,
     val setTrigger: (Prefs.Trigger) -> Unit,
+    val setWaitForJovi: (Boolean) -> Unit,
     val openEnroll: () -> Unit,
     val testGemini: () -> Unit,
     val openDonate: () -> Unit,
@@ -108,6 +111,10 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
                 item {
                     GroupCard(MaxWidth) {
                         TriggerRow(s.triggerJoviTitle, s.triggerJoviDescription, state.jovi) { actions.setTrigger(Prefs.Trigger.JOVI) }
+                        if (state.jovi) {
+                            RowDivider()
+                            SwitchRow(s.waitJoviTitle, s.waitJoviDescription, state.waitForJovi, actions.setWaitForJovi)
+                        }
                         RowDivider()
                         TriggerRow(s.triggerGoogleTitle, s.triggerGoogleDescription, !state.jovi) { actions.setTrigger(Prefs.Trigger.GOOGLE) }
                     }
@@ -147,8 +154,6 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
             item { SectionHeader(s.sectionOtherWays, modifier = MaxWidth) }
             item {
                 GroupCard(MaxWidth) {
-                    InfoRow(HiggIcons.Button, s.shortcutTitle, s.shortcutDescription)
-                    RowDivider()
                     if (state.jovi) {
                         InfoRow(HiggIcons.Mic, s.joviEnableTitle, s.joviEnableDescription)
                     } else {
@@ -366,6 +371,31 @@ private fun TriggerRow(title: String, description: String, selected: Boolean, on
                 Spacer(Modifier.width(Space.sm))
                 Text(s.stateInUse, style = MaterialTheme.typography.labelMedium, color = colors.primary)
             }
+        }
+    }
+}
+
+/** Một tùy chọn bật/tắt: cả dòng là công tắc để dễ chạm. */
+@Composable
+private fun SwitchRow(title: String, description: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        onClick = { onChange(!checked) },
+        color = colors.surfaceContainerLow,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) { role = Role.Switch },
+    ) {
+        Row(
+            Modifier.padding(start = 56.dp + Space.md, end = Space.md, top = Space.md - Space.xs, bottom = Space.md - Space.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+            Spacer(Modifier.width(Space.sm))
+            Switch(checked = checked, onCheckedChange = null)
         }
     }
 }

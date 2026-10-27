@@ -34,7 +34,6 @@ object HiggIcons {
     val ChevronRight = icon("ChevronRight", "M9 6l6 6-6 6")
     val ArrowBack = icon("ArrowBack", "M19 12H5", "M12 19l-7-7 7-7")
     val Sparkle = icon("Sparkle", "M12 3l1.9 7.1L21 12l-7.1 1.9L12 21l-1.9-7.1L3 12l7.1-1.9L12 3z")
-    val Button = icon("SideButton", "M7 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", "M20 8v4")
     val Quiet = icon("Quiet", "M11 5L6 9H2v6h4l5 4V5z", "M22 9l-6 6", "M16 9l6 6")
     val Hand = icon("Hand", "M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z", "M11 18h2")
     val Repeat = icon("Repeat", "M17 2l4 4-4 4", "M3 11v-1a4 4 0 0 1 4-4h14", "M7 22l-4-4 4-4", "M21 13v1a4 4 0 0 1-4 4H3")

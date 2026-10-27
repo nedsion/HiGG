@@ -31,6 +31,17 @@ object Prefs {
             .putString(KEY_TRIGGER, trigger.name).apply()
     }
 
+    private const val KEY_WAIT_FOR_JOVI = "wait_for_jovi"
+
+    /** Chờ Jovi tự tắt hẳn rồi mới mở Gemini: chậm hơn vài giây nhưng ảnh nền Gemini sạch. */
+    fun waitForJovi(context: Context): Boolean =
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getBoolean(KEY_WAIT_FOR_JOVI, false)
+
+    fun setWaitForJovi(context: Context, wait: Boolean) {
+        context.getSharedPreferences(FILE, Context.MODE_PRIVATE).edit()
+            .putBoolean(KEY_WAIT_FOR_JOVI, wait).apply()
+    }
+
     fun language(context: Context): Lang? =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE).getString(KEY_LANGUAGE, null)
             ?.let { runCatching { Lang.valueOf(it) }.getOrNull() }

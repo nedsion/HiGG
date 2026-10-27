@@ -28,13 +28,20 @@ object JoviWatcher {
     }
 
     /** Thời điểm Jovi thức dậy gần nhất sau [since] (ms, đồng hồ hệ thống), null nếu không có. */
-    fun lastWake(context: Context, since: Long): Long? {
+    fun lastWake(context: Context, since: Long): Long? =
+        lastEvent(context, since, UsageEvents.Event.FOREGROUND_SERVICE_START)
+
+    /** Thời điểm Jovi tắt hẳn (dừng dịch vụ nền) gần nhất sau [since], null nếu chưa tắt. */
+    fun lastStop(context: Context, since: Long): Long? =
+        lastEvent(context, since, UsageEvents.Event.FOREGROUND_SERVICE_STOP)
+
+    private fun lastEvent(context: Context, since: Long, type: Int): Long? {
         val usage = context.getSystemService(UsageStatsManager::class.java)
         val events = usage.queryEvents(since, System.currentTimeMillis()) ?: return null
         val event = UsageEvents.Event()
         var last: Long? = null
         while (events.getNextEvent(event)) {
-            if (event.eventType == UsageEvents.Event.FOREGROUND_SERVICE_START &&
+            if (event.eventType == type &&
                 event.packageName in JOVI_PACKAGES
             ) {
                 last = event.timeStamp

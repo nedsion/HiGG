@@ -47,6 +47,15 @@ class HotwordService : Service() {
         /** Lúc màn hình vừa bật: HiGG có thể vừa được rã đông, Jovi đã thức dậy từ vài giây trước. */
         private const val SCREEN_ON_WINDOW_MS = 8000L
 
+        /** Jovi nhả micro rồi mới ghi sự kiện dừng dịch vụ, nên kiểm tra vài lần sau khi nhả micro. */
+        private val JOVI_STOP_CHECK_DELAYS_MS = longArrayOf(0, 300, 800, 1500, 2500)
+
+        /** Jovi đã tắt hẳn: chờ hiệu ứng mờ dần xong rồi mới mở Gemini. */
+        private const val JOVI_SETTLE_MS = 300L
+
+        /** Jovi không chịu tắt thì sau chừng này vẫn mở Gemini. */
+        private const val JOVI_MAX_WAIT_MS = 8000L
+
         private val SCREEN_ON_CHECK_DELAYS_MS = longArrayOf(0, 500, 1500, 3000)
 
         private val runningState = MutableStateFlow(false)
@@ -87,7 +96,14 @@ class HotwordService : Service() {
             return START_STICKY
         }
         try {
-            startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
+            // Chế độ "Hi Jovi" không dùng micro: khai báo loại khác để Android cho tự khởi động lại
+            // từ nền (dịch vụ dùng micro thì chỉ được bật khi người dùng đang mở app).
+            val type = if (Prefs.trigger(this) == Prefs.Trigger.JOVI) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            } else {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            }
+            startForeground(NOTIFICATION_ID, buildNotification(), type)
         } catch (e: Exception) {
             // Android không cho bật micro khi app đang ở nền (vd. hệ thống tự khởi động lại dịch vụ).
             Log.w(TAG, "Không thể chạy nền với micro", e)
@@ -136,7 +152,11 @@ class HotwordService : Service() {
         handledJoviWake = System.currentTimeMillis()
         val callback = object : AudioManager.AudioRecordingCallback() {
             override fun onRecordingConfigChanged(configs: List<AudioRecordingConfiguration>) {
-                if (configs.isEmpty()) return
+                if (configs.isEmpty()) {
+                    // Jovi vừa nhả micro: nếu đang chờ Jovi tắt thì kiểm tra ngay.
+                    if (waitingWake != 0L) for (delay in JOVI_STOP_CHECK_DELAYS_MS) main.postDelayed(::checkJoviStopped, delay)
+                    return
+                }
                 for (delay in JOVI_CHECK_DELAYS_MS) main.postDelayed({ checkJoviWake() }, delay)
             }
         }
@@ -164,6 +184,17 @@ class HotwordService : Service() {
         val since = maxOf(handledJoviWake, System.currentTimeMillis() - window)
         val wake = JoviWatcher.lastWake(this, since) ?: return
         handledJoviWake = wake + 1
+        if (Prefs.waitForJovi(this)) {
+            // Không đụng tới Jovi (giành micro hay quyền âm thanh thì Jovi đổi sang thẻ nhập chữ),
+            // chờ Jovi tự tắt hẳn rồi mới mở Gemini để Gemini chụp được màn hình sạch.
+            DebugLog.write(this, "Jovi vừa thức dậy → chờ Jovi tắt hẳn")
+            waitingWake = wake
+            main.removeCallbacks(launchAfterJovi)
+            main.postDelayed(launchAfterJovi, JOVI_MAX_WAIT_MS)
+            // Phòng khi lỡ tin báo Jovi nhả micro (vd. HiGG vừa được rã đông lúc màn hình bật).
+            for (second in 1..7) main.postDelayed(::checkJoviStopped, second * 1000L)
+            return
+        }
         DebugLog.write(this, "Jovi vừa thức dậy → mở Gemini")
         // Mở ngay: Gemini lấy micro thì Jovi đóng hẳn. (App khác giành micro hay quyền âm thanh thì
         // Jovi không đóng mà chuyển sang thẻ nhập chữ.)
@@ -171,6 +202,26 @@ class HotwordService : Service() {
         // tắt "Sử dụng văn bản trên màn hình". Đã thử và không được: chờ Jovi đóng trước (Jovi đổi
         // sang thẻ nhập chữ), gọi lại Gemini sau 1,2 s (Gemini giữ ảnh cũ).
         Gemini.launchFromBackground(this)
+    }
+
+    /** Thời điểm Jovi thức dậy mà HiGG đang chờ Jovi tắt, 0 nếu không chờ. */
+    private var waitingWake = 0L
+
+    private val launchAfterJovi = Runnable {
+        if (waitingWake == 0L) return@Runnable
+        waitingWake = 0L
+        DebugLog.write(this, "Jovi đã tắt → mở Gemini")
+        Gemini.launchFromBackground(this)
+    }
+
+    /** Jovi tắt hẳn khi đã nhả micro và dừng dịch vụ nền. */
+    private fun checkJoviStopped() {
+        val wake = waitingWake
+        if (wake == 0L) return
+        if (getSystemService(AudioManager::class.java).activeRecordingConfigurations.isNotEmpty()) return
+        JoviWatcher.lastStop(this, wake) ?: return
+        main.removeCallbacks(launchAfterJovi)
+        main.postDelayed(launchAfterJovi, JOVI_SETTLE_MS)
     }
 
     private fun listenLoop() {

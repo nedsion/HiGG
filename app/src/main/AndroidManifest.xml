@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -36,9 +37,6 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity
@@ -50,21 +48,14 @@
             android:name=".DonateActivity"
             android:exported="false" />
 
-        <!-- Mở Gemini ngay rồi tự đóng. Không có biểu tượng riêng: dùng qua lối tắt "Mở Gemini"
-             của HiGG (res/xml/shortcuts.xml) cho Nút lối tắt / nhấn giữ biểu tượng HiGG. -->
-        <activity
-            android:name=".LaunchGeminiActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:label="@string/launch_gemini"
-            android:noHistory="true"
-            android:taskAffinity=""
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
         <service
             android:name=".HotwordService"
             android:exported="false"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="microphone|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Waits for the vivo Jovi wake word and hands off to Gemini" />
+        </service>
 
         <receiver
             android:name=".BootReceiver"

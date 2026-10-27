@@ -30,22 +30,12 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_AUTOSTART = "autostart"
 
-        /**
-         * Phím tắt phần cứng của vivo (Khởi chạy nhanh, Nút lối tắt) chỉ cho chọn ứng dụng,
-         * không chọn được lối tắt bên trong app. Khi chúng mở HiGG thì mở thẳng Gemini.
-         */
-        private val HARDWARE_SHORTCUT_CALLERS = setOf("com.vivo.SmartKey")
-
         private const val VIVO_AUTOSTART = "com.iqoo.secure.BGSTARTUPMANAGER"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null && openGeminiIfFromShortcutKey()) {
-            finish()
-            return
-        }
         if (intent.getBooleanExtra(EXTRA_AUTOSTART, false)) startListening()
 
         setContent {
@@ -98,6 +88,10 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         openAssistSettings = { startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS)) },
+                        setWaitForJovi = {
+                            Prefs.setWaitForJovi(this, it)
+                            state = readSetupState()
+                        },
                         setTrigger = {
                             Prefs.setTrigger(this, it)
                             state = readSetupState()
@@ -133,22 +127,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        setIntent(intent)
-        if (openGeminiIfFromShortcutKey()) {
-            // HiGG đang mở sẵn: đưa xuống nền để đóng Gemini xong không thấy HiGG hiện ra.
-            moveTaskToBack(true)
-            return
-        }
         if (intent.getBooleanExtra(EXTRA_AUTOSTART, false)) startListening()
-    }
-
-    private fun openGeminiIfFromShortcutKey(): Boolean {
-        val launcherIntent = intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)
-        val caller = referrer?.host
-        DebugLog.write(this, "mở HiGG từ: $caller (biểu tượng/launcher intent: $launcherIntent)")
-        if (!launcherIntent || caller !in HARDWARE_SHORTCUT_CALLERS) return false
-        Gemini.launch(this)
-        return true
     }
 
     private fun readSetupState() = SetupState(
@@ -159,6 +138,7 @@ class MainActivity : ComponentActivity() {
         keepPermissions = packageManager.isAutoRevokeWhitelisted,
         voiceEnrolled = VoiceProfile.load(this) != null,
         trigger = Prefs.trigger(this),
+        waitForJovi = Prefs.waitForJovi(this),
         joviInstalled = JoviWatcher.isJoviInstalled(this),
         usageAccess = JoviWatcher.hasUsageAccess(this),
         noScreenFlash = runCatching {
