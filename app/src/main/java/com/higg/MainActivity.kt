@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
                                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
                             }
                         },
+                        openAssistSettings = { startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS)) },
                         setTrigger = {
                             Prefs.setTrigger(this, it)
                             state = readSetupState()
@@ -160,6 +161,9 @@ class MainActivity : ComponentActivity() {
         trigger = Prefs.trigger(this),
         joviInstalled = JoviWatcher.isJoviInstalled(this),
         usageAccess = JoviWatcher.hasUsageAccess(this),
+        noScreenFlash = runCatching {
+            Settings.Secure.getInt(contentResolver, "assist_structure_enabled", 1) == 0
+        }.getOrNull(),
     )
 
     private fun openSettings(action: String) {

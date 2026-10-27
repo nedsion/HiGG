@@ -56,6 +56,8 @@ data class SetupState(
     val trigger: Prefs.Trigger,
     val joviInstalled: Boolean,
     val usageAccess: Boolean,
+    /** Đã tắt "Sử dụng văn bản trên màn hình" (null: không đọc được cài đặt). */
+    val noScreenFlash: Boolean?,
 ) {
     val jovi get() = trigger == Prefs.Trigger.JOVI
     private val required get() =
@@ -73,6 +75,7 @@ class HomeActions(
     val openKeepPermissionsSettings: () -> Unit,
     val openAutostartSettings: () -> Unit,
     val openUsageAccessSettings: () -> Unit,
+    val openAssistSettings: () -> Unit,
     val setTrigger: (Prefs.Trigger) -> Unit,
     val openEnroll: () -> Unit,
     val testGemini: () -> Unit,
@@ -127,6 +130,10 @@ fun HomeScreen(state: SetupState, listening: Boolean, lang: Lang, actions: HomeA
                     }
                     RowDivider()
                     SetupRow(HiggIcons.Power, s.autostartTitle, s.autostartDescription, null, "", actions.openAutostartSettings)
+                    RowDivider()
+                    // Tùy chọn, không tính vào số bước: Android luôn phủ màu cầu vồng ("nháy màn hình")
+                    // khi trợ lý không phải app hệ thống đọc màn hình — app Google trên ROM nội địa là vậy.
+                    SetupRow(HiggIcons.Sparkle, s.noFlashTitle, s.noFlashDescription, state.noScreenFlash, s.actionTurnOff, actions.openAssistSettings)
                 }
             }
 
