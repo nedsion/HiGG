@@ -1,0 +1,11 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+
+# Khóa ký bản phát hành: tuyệt đối không đưa lên git
+*.jks
+*.keystore
+keystore.properties

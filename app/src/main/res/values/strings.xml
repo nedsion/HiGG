@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HiGG</string>
+    <string name="launch_gemini">Mở Gemini</string>
+    <string name="enroll_title">Đăng ký giọng nói</string>
+</resources>
