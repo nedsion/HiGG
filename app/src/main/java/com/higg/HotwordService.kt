@@ -10,6 +10,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
@@ -46,6 +48,9 @@ class HotwordService : Service() {
 
         /** Lúc màn hình vừa bật: HiGG có thể vừa được rã đông, Jovi đã thức dậy từ vài giây trước. */
         private const val SCREEN_ON_WINDOW_MS = 8000L
+
+        /** Chờ Jovi nhận việc mất quyền âm thanh rồi mới mở Gemini. */
+        private const val JOVI_DISMISS_DELAY_MS = 150L
         private val SCREEN_ON_CHECK_DELAYS_MS = longArrayOf(0, 500, 1500, 3000)
 
         private val runningState = MutableStateFlow(false)
@@ -164,7 +169,20 @@ class HotwordService : Service() {
         val wake = JoviWatcher.lastWake(this, since) ?: return
         handledJoviWake = wake + 1
         DebugLog.write(this, "Jovi vừa thức dậy → mở Gemini")
-        Gemini.launchFromBackground(this)
+        // Giành quyền âm thanh trước để Jovi dừng nghe và thu bảng lại, tránh lớp màu của Jovi
+        // còn đang trượt lên đè lên Gemini.
+        val audio = getSystemService(AudioManager::class.java)
+        val focus = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+            )
+            .build()
+        audio.requestAudioFocus(focus)
+        main.postDelayed({ Gemini.launchFromBackground(this) }, JOVI_DISMISS_DELAY_MS)
+        main.postDelayed({ audio.abandonAudioFocusRequest(focus) }, JOVI_DISMISS_DELAY_MS + 1500)
     }
 
     private fun listenLoop() {
